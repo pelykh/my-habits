@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'My Habits',
-        short_name: 'Habits',
+        name: 'Звички',
+        short_name: 'Звички',
         description: 'Minimal habit tracker with drawable calendar',
         theme_color: '#f5f0e8',
         background_color: '#f5f0e8',
