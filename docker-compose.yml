@@ -8,4 +8,5 @@ services:
     environment:
       DB_PATH: /data/habits.db
       PORT: ${PORT:-3001}
+    stop_grace_period: 10s
     restart: unless-stopped

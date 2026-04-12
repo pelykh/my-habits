@@ -77,6 +77,15 @@ app.get('*', (c) => {
 });
 
 const PORT = parseInt(process.env.PORT ?? '3001');
-serve({ fetch: app.fetch, port: PORT }, () => {
+const server = serve({ fetch: app.fetch, port: PORT }, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+function shutdown() {
+  server.close(() => {
+    try { getDb().close(); } catch (_) {}
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT',  shutdown);
