@@ -25,6 +25,15 @@ habitsRouter.post('/', async (c) => {
   return c.json({ id, cue, routine, reward, colorIdx, sortOrder: m + 1 });
 });
 
+habitsRouter.patch('/:id', async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const { cue, routine, reward } = await c.req.json();
+  getDb().prepare('UPDATE habits SET cue = ?, routine = ?, reward = ? WHERE id = ?')
+    .run(cue, routine, reward, id);
+  const row = getDb().prepare('SELECT * FROM habits WHERE id = ?').get(id);
+  return c.json({ id: row.id, cue: row.cue, routine: row.routine, reward: row.reward, colorIdx: row.color_idx, sortOrder: row.sort_order });
+});
+
 habitsRouter.delete('/:id', (c) => {
   getDb().prepare('DELETE FROM habits WHERE id = ?').run(parseInt(c.req.param('id')));
   return c.json({ ok: true });

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  fetchHabits, createHabit, deleteHabit,
+  fetchHabits, createHabit, updateHabit, deleteHabit,
   fetchMarks, commitMark,
   fetchSetting, saveSetting,
   exportData, importData,
@@ -26,6 +26,8 @@ const T = {
     export:        "EXPORT",
     import:        "IMPORT",
     invalidFile:   "Invalid file.",
+    editHabit:     "EDIT",
+    saveHabit:     "SAVE CHANGES",
     deleteHabit:   "DELETE",
     confirmDelete: "SURE?",
     confirmYes:    "YES",
@@ -49,6 +51,8 @@ const T = {
     export:        "ЕКСПОРТ",
     import:        "ІМПОРТ",
     invalidFile:   "Невірний файл.",
+    editHabit:     "РЕДАГУВАТИ",
+    saveHabit:     "ЗБЕРЕГТИ ЗМІНИ",
     deleteHabit:   "ВИДАЛИТИ",
     confirmDelete: "ВПЕВНЕНИЙ?",
     confirmYes:    "ТАК",
@@ -338,6 +342,82 @@ function AddHabitForm({ onAdd, onCancel, lang }) {
   );
 }
 
+// ── Edit Habit Form ───────────────────────────────────────────────────────────
+function EditHabitForm({ habit, onSave, onCancel, lang }) {
+  const t = T[lang];
+  const [cue, setCue]         = useState(habit.cue);
+  const [routine, setRoutine] = useState(habit.routine);
+  const [reward, setReward]   = useState(habit.reward);
+
+  const colors  = HABIT_COLORS[habit.colorIdx ?? 0];
+  const mono    = "'Space Mono', monospace";
+  const inputStyle = {
+    width: "100%", boxSizing: "border-box",
+    border: "2px solid #0a0a0a", padding: "10px 12px",
+    fontFamily: mono, fontSize: 12, background: "#fff",
+    outline: "none", resize: "none", boxShadow: "3px 3px 0 #0a0a0a",
+  };
+  const labelStyle = {
+    fontSize: 9, fontFamily: mono, fontWeight: 700,
+    letterSpacing: "0.2em", color: "#0a0a0a",
+    display: "block", marginBottom: 6,
+  };
+  const disabled = !cue.trim() || !routine.trim() || !reward.trim();
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#f5f0e8",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: "40px 16px", fontFamily: mono,
+    }}>
+      <link rel="stylesheet" href={FONT_LINK} />
+      <div style={{ width: "100%", maxWidth: 530 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 36, letterSpacing: "0.1em", color: "#0a0a0a", margin: 0 }}>
+            {t.editHabit}
+          </h1>
+          <button onClick={onCancel} className="nb-btn" style={{
+            background: "#fff", border: "2px solid #0a0a0a",
+            fontFamily: mono, fontSize: 11, fontWeight: 700,
+            padding: "6px 14px", cursor: "pointer",
+          }}>{t.cancel}</button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
+          {[
+            { label: t.cue,     value: cue,     set: setCue,     bg: colors.cue,     ph: t.cuePh },
+            { label: t.routine, value: routine,  set: setRoutine, bg: colors.routine, ph: t.routinePh },
+            { label: t.reward,  value: reward,   set: setReward,  bg: colors.reward,  ph: t.rewardPh },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={labelStyle}>
+                <span style={{ background: f.bg, padding: "1px 6px", border: "1.5px solid #0a0a0a" }}>{f.label}</span>
+              </label>
+              <textarea rows={2} value={f.value} onChange={e => f.set(e.target.value)}
+                placeholder={f.ph} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+
+        <button onClick={() => { if (!disabled) onSave({ cue: cue.trim(), routine: routine.trim(), reward: reward.trim() }); }}
+          disabled={disabled}
+          className={disabled ? "" : "nb-btn"}
+          style={{
+            width: "100%", padding: "14px 0",
+            background: disabled ? "#d0d0d0" : "#60a5fa",
+            border: "2px solid #0a0a0a",
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: 22, letterSpacing: "0.12em",
+            cursor: disabled ? "default" : "pointer",
+            color: "#0a0a0a", transition: "background 0.15s",
+          }}
+        >{t.saveHabit}</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildGrid(y, m) {
   const first = new Date(y, m, 1).getDay();
@@ -424,6 +504,16 @@ export default function HabitCalendar() {
   const prevMonth = () => { if (month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); };
   const nextMonth = () => { if (month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); };
 
+  const handleEdit = async ({ cue, routine, reward }) => {
+    try {
+      const updated = await updateHabit(habit.id, { cue, routine, reward });
+      setHabits(prev => prev.map((h, i) => i === habitIdx ? updated : h));
+      setPage("calendar");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleAdd = async ({ cue, routine, reward }) => {
     try {
       const colorIdx = habits.length % HABIT_COLORS.length;
@@ -506,6 +596,10 @@ export default function HabitCalendar() {
     return <AddHabitForm onAdd={handleAdd} onCancel={() => setPage("calendar")} lang={lang} />;
   }
 
+  if (page === "edit") {
+    return <EditHabitForm habit={habit} onSave={handleEdit} onCancel={() => setPage("calendar")} lang={lang} />;
+  }
+
   const mono      = "'Space Mono', monospace";
   const hasPrev   = habitIdx > 0;
   const hasNext   = habitIdx < habits.length - 1;
@@ -537,6 +631,10 @@ export default function HabitCalendar() {
             {t.import}
             <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
           </label>
+          <div style={{ width: "100%", height: "1.5px", background: "rgba(10,10,10,0.12)", margin: "1px 0" }} />
+          <button className="nb-btn data-action-btn" onClick={() => { setMenuOpen(false); setPage("edit"); }}>
+            {t.editHabit}
+          </button>
           <div style={{ width: "100%", height: "1.5px", background: "rgba(10,10,10,0.12)", margin: "1px 0" }} />
           {!confirmDelete ? (
             <button className="nb-btn data-action-btn" onClick={() => setConfirmDelete(true)}

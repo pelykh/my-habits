@@ -16,6 +16,16 @@ export async function createHabit({ cue, routine, reward, colorIdx }) {
   return res.json();
 }
 
+export async function updateHabit(id, { cue, routine, reward }) {
+  const res = await fetch(`${BASE}/habits/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cue, routine, reward }),
+  });
+  if (!res.ok) throw new Error('Failed to update habit');
+  return res.json();
+}
+
 export async function deleteHabit(id) {
   const res = await fetch(`${BASE}/habits/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete habit');
